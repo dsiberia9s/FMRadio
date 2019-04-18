@@ -25,6 +25,9 @@ def write_u16(address, val):
 
 def read_u16(address):
   return register_short(address)
+  
+def getRegister(address):
+  return read_u16(address)
 
 def updateRegister(reg, mask, value):
   write_u16(reg, (read_u16(reg) & ~mask | value))
@@ -50,6 +53,7 @@ RDA5807M_REG_TUNING = 0x03
 RDA5807M_REG_VOLUME = 0x05
 RDA5807M_REG_BLEND = 0x07
 RDA5807M_REG_STATUS = 0x0A
+RDA5807M_REG_RSSI = 0x0B
 RDA5807M_FLG_ENABLE = 0x0001
 RDA5807M_FLG_SEEKUP = 0x0200
 RDA5807M_FLG_SEEK = 0x0100
@@ -64,6 +68,8 @@ RDA5807M_STATUS_STC = 0x4000
 RDA5807M_VOLUME_MASK = 0x000F
 RDA5807M_SPACE_MASK = 0x0003
 RDA5807M_READCHAN_MASK = 0x03FF
+RDA5807M_RSSI_MASK = 0xFE00
+RDA5807M_RSSI_SHIFT = 9
 MUTE = False
 
 #lcd.clear()
@@ -111,8 +117,10 @@ def getBandAndSpacing():
   
 def getFrequency():
   space, band = getBandAndSpacing()
-  return RDA5807M_BandLowerLimits[lowByte(space)] + (read_u16(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) * RDA5807M_ChannelSpacings[highByte(band)] / 10
+  return int((RDA5807M_BandLowerLimits[lowByte(space)] + (read_u16(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) * RDA5807M_ChannelSpacings[highByte(band)] / 10))
 
+def getRSSI():
+  return (read_u16(RDA5807M_REG_RSSI) & RDA5807M_RSSI_MASK) >> RDA5807M_RSSI_SHIFT
 
 write_u16(RDA5807M_REG_CONFIG, (RDA5807M_FLG_DHIZ | RDA5807M_STATUS_STC | RDA5807P_FLG_I2SSLAVE | RDA5807M_FLG_SEEKUP | RDA5807M_FLG_RDS | RDA5807M_FLG_NEW | RDA5807M_FLG_ENABLE))
 updateRegister(RDA5807M_REG_TUNING, RDA5807M_BAND_MASK, RDA5807M_BAND_WEST)
@@ -125,7 +133,7 @@ def buttonB_pressed():
 
 def buttonC_pressed():
   lcd.clear()
-  lcd.print(getFrequency(), 10, 10, 0xffffff)
+  lcd.print(getRSSI(), 10, 10, 0xffffff)
   
   #lcd.clear()
   #lcd.print(getFrequency(), 0, 0, 0xffffff)
