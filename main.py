@@ -149,11 +149,11 @@ while True:
     lastTime = time.ticks_us()
     rssi = getRSSI()
     label1.setText(str(getFrequency()))
-    if rssi >= 55:
+    if rssi >= 45:
       rgb.set_all(0x0000ff)
-    elif rssi >= 45:
+    elif rssi >= 40:
       rgb.set_all(0x00ff00)
-    elif rssi >= 30:
+    elif rssi >= 35:
       rgb.set_all(0xffff00)
     else:
       rgb.set_all(0xff0000)
