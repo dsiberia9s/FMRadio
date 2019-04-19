@@ -7,7 +7,8 @@ clear_bg(0x222222)
 btnA = M5Button(name="ButtonA", text="ButtonA", visibility=False)
 btnB = M5Button(name="ButtonB", text="ButtonB", visibility=False)
 btnC = M5Button(name="ButtonC", text="ButtonC", visibility=False)
-
+label1 = M5TextBox(21, 74, "FM", lcd.FONT_DejaVu56,0xFFFFFF, rotate=0)
+rgb = RGB_Bar()
 
 i2c_l = i2c_bus.get(i2c_bus.PORTA)
 i2cAddr = (0x22 >> 1)
@@ -126,18 +127,34 @@ write_u16(RDA5807M_REG_CONFIG, (RDA5807M_FLG_DHIZ | RDA5807M_STATUS_STC | RDA580
 updateRegister(RDA5807M_REG_TUNING, RDA5807M_BAND_MASK, RDA5807M_BAND_WEST)
 
 def buttonA_pressed():
-  volumeDown()
+  seekDown()
   
 def buttonB_pressed():
-  seekUp()
+  global MUTE
+  mute(not MUTE)
 
 def buttonC_pressed():
-  lcd.clear()
-  lcd.print(getRSSI(), 10, 10, 0xffffff)
-  
-  #lcd.clear()
-  #lcd.print(getFrequency(), 0, 0, 0xffffff)
-
+  seekUp()
+ 
 buttonA.wasPressed(callback=buttonA_pressed)
 buttonB.wasPressed(callback=buttonB_pressed)
 buttonC.wasPressed(callback=buttonC_pressed)
+
+lastTime = 0
+
+seekUp()
+
+while True:
+  if time.ticks_us() - lastTime >= 2000000:
+    lastTime = time.ticks_us()
+    rssi = getRSSI()
+    label1.setText(str(getFrequency()))
+    if rssi >= 55:
+      rgb.set_all(0x0000ff)
+    elif rssi >= 45:
+      rgb.set_all(0x00ff00)
+    elif rssi >= 30:
+      rgb.set_all(0xffff00)
+    else:
+      rgb.set_all(0xff0000)
+  wait(0.001)
