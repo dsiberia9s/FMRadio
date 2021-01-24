@@ -1,14 +1,16 @@
 from m5stack import *
 from m5ui import *
+from uiflow import *
+import machine
 import i2c_bus
 
-clear_bg(0x222222)
+setScreenColor(0x222222)
 
-btnA = M5Button(name="ButtonA", text="ButtonA", visibility=False)
-btnB = M5Button(name="ButtonB", text="ButtonB", visibility=False)
-btnC = M5Button(name="ButtonC", text="ButtonC", visibility=False)
-label1 = M5TextBox(21, 74, "FM", lcd.FONT_DejaVu56,0xFFFFFF, rotate=0)
-rgb = RGB_Bar()
+label1 = M5TextBox(62, 48, "Text", lcd.FONT_Default, 0xFFFFFF, rotate=0)
+
+adc0 = machine.ADC(35)
+adc0.width(machine.ADC.WIDTH_9BIT)
+adc0.atten(machine.ADC.ATTN_0DB)
 
 i2c_l = i2c_bus.get(i2c_bus.PORTA)
 i2cAddr = (0x22 >> 1)
@@ -26,16 +28,16 @@ def write_u16(address, val):
 
 def read_u16(address):
   return register_short(address)
-  
+
 def getRegister(address):
   return read_u16(address)
 
 def updateRegister(reg, mask, value):
   write_u16(reg, (read_u16(reg) & ~mask | value))
-  
+
 def lowByte(byte):
   return byte & 0x0F
-  
+
 def highByte(byte):
   return byte >> 4
 
@@ -48,7 +50,7 @@ RDA5807M_BAND_WORLD = (0x2 << 2)
 RDA5807M_BAND_EAST = (0x3 << 2)
 RDA5807M_BAND_MASK = 0x000C
 RDA5807M_BAND_SHIFT = 2
-RDA5807M_REG_CHIPID = 0x00  
+RDA5807M_REG_CHIPID = 0x00
 RDA5807M_REG_CONFIG = 0x02
 RDA5807M_REG_TUNING = 0x03
 RDA5807M_REG_VOLUME = 0x05
@@ -98,7 +100,7 @@ def volumeDown():
   if volume == 0:
     mute(True)
   return volume
-  
+
 def volumeUp():
   volume = read_u16(RDA5807M_REG_VOLUME) & RDA5807M_VOLUME_MASK
   volume = volume + 1 if volume + 1 <= 15 else 15
@@ -106,7 +108,7 @@ def volumeUp():
   if MUTE == True:
     mute(False)
   return volume
-  
+
 def getBandAndSpacing():
   band = read_u16(RDA5807M_REG_TUNING) & (RDA5807M_BAND_MASK | RDA5807M_SPACE_MASK)
   space = band & RDA5807M_SPACE_MASK
@@ -115,7 +117,7 @@ def getBandAndSpacing():
   else:
     band = band >> RDA5807M_BAND_SHIFT
   return space, band
-  
+
 def getFrequency():
   space, band = getBandAndSpacing()
   return int((RDA5807M_BandLowerLimits[lowByte(space)] + (read_u16(RDA5807M_REG_STATUS) & RDA5807M_READCHAN_MASK) * RDA5807M_ChannelSpacings[highByte(band)] / 10))
@@ -128,33 +130,26 @@ updateRegister(RDA5807M_REG_TUNING, RDA5807M_BAND_MASK, RDA5807M_BAND_WEST)
 
 def buttonA_pressed():
   seekDown()
-  
+
 def buttonB_pressed():
   global MUTE
   mute(not MUTE)
 
 def buttonC_pressed():
   seekUp()
- 
-buttonA.wasPressed(callback=buttonA_pressed)
-buttonB.wasPressed(callback=buttonB_pressed)
-buttonC.wasPressed(callback=buttonC_pressed)
+
+btnA.wasPressed(callback=buttonA_pressed)
+btnB.wasPressed(callback=buttonB_pressed)
+btnC.wasPressed(callback=buttonC_pressed)
 
 lastTime = 0
 
 seekUp()
 
 while True:
-  if time.ticks_us() - lastTime >= 2000000:
-    lastTime = time.ticks_us()
-    rssi = getRSSI()
-    label1.setText(str(getFrequency()))
-    if rssi >= 45:
-      rgb.set_all(0x0000ff)
-    elif rssi >= 40:
-      rgb.set_all(0x00ff00)
-    elif rssi >= 35:
-      rgb.set_all(0xffff00)
-    else:
-      rgb.set_all(0xff0000)
+  # if time.ticks_us() - lastTime >= 2000000:
+  # lastTime = time.ticks_us()
+  # rssi = getRSSI()
+  # label1.setText(str(getFrequency() / 100))
+  # label1.setText(str(adc0.read()))
   wait(0.001)
